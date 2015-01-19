@@ -4,7 +4,7 @@ project(cad)
 
 SET(CMAKE_CXX_FLAGS "-std=c++11 -Wall -Wextra -Werror")
 SET(EXECUTABLE_OUTPUT_PATH bin/${CMAKE_BUILD_TYPE})
-
+SET(CMAKE_C_COMPILER "g++")
 include_directories(
 	include/
 )
