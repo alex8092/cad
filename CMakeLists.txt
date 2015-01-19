@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8)
 
 project(cad)
 
-SET(CMAKE_CXX_FLAGS "-std=c++11 -Wall -Wextra -Werror")
+SET(CMAKE_CXX_FLAGS "-std=c++1y -Wall -Wextra -Werror")
 SET(EXECUTABLE_OUTPUT_PATH bin/${CMAKE_BUILD_TYPE})
 SET(CMAKE_C_COMPILER "g++")
 include_directories(

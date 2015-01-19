@@ -90,10 +90,57 @@ namespace cad
 		}
 	};
 
-	template <char c>
+	template <class Checker>
+	struct CheckStar : public CheckRepeat<Checker, 0, -1> {};
+
+	template <class Checker>
+	struct CheckPlus : public CheckRepeat<Checker, 1, -1> {};
+
+	template <char c, char ... Next>
 	struct CheckCharacter {
+		typedef CheckCharacter<c, Next...>	type;
+		static inline bool	check(const std::string& to_check, size_t& size) noexcept {
+			size_t save = size;
+			if (to_check[size] == c) {
+				++size;
+				if (!CheckCharacter<Next...>::check(to_check, size)) {
+					size = save;
+					return (false);
+				}
+				return (true);
+			}
+			return (false);
+		}
+	};
+
+	template <char c>
+	struct CheckCharacter<c> {
 		static inline bool	check(const std::string& to_check, size_t& size) noexcept {
 			if (to_check[size] == c) {
+				++size;
+				return (true);
+			}
+			return (false);
+		}
+	};
+
+	template <const char (str)[], size_t size_str>
+	struct CheckString
+	{
+		static inline bool	check(const std::string& to_check, size_t& size) noexcept {
+			size_t i;
+			for (i = 0; i < size_str && to_check[size + i] == str[i]; ++i);
+			if (i == size_str) {
+				size += i;
+				return (true);
+			}
+			return (false);
+		}
+	};
+
+	struct CheckSpace {
+		static inline bool	check(const std::string& to_check, size_t& size) noexcept {
+			if (std::isspace(to_check[size])) {
 				++size;
 				return (true);
 			}

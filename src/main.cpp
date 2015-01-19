@@ -8,16 +8,6 @@
 
 namespace user
 {
-	struct CheckSpace {
-		static inline bool	check(const std::string& to_check, size_t& size) noexcept {
-			if (std::isspace(to_check[size])) {
-				++size;
-				return (true);
-			}
-			return (false);
-		}
-	};
-
 	struct CheckWord {
 		static bool			check(const std::string& to_check, size_t& size) noexcept {
 			size_t s = 0;
@@ -42,35 +32,17 @@ namespace user
 
 	namespace preproc
 	{
-
-		struct CheckKeywordInclude {
-			static bool			check(const std::string& to_check, size_t& size) noexcept {
-				if (to_check.compare(size, sizeof("include") - 1, "include") == 0) {
-					size += sizeof("include") - 1;
-					return (true);
-				}
-				return (false);
-			}
-		};
-
-		struct CheckKeywordDefine {
-			static bool			check(const std::string& to_check, size_t& size) noexcept {
-				if (to_check.compare(size, sizeof("define") - 1, "define") == 0) {
-					size += sizeof("define") - 1;
-					return (true);
-				}
-				return (false);
-			}
-		};
+		static constexpr const char keyword_define[] = "define";
+		static constexpr const char keyword_include[] = "include";
 	}
 
 	typedef cad::CheckAnd	<
 							cad::CheckCharacter<'#'>,
-							cad::CheckRepeat<CheckSpace, 0, -1>,
+							cad::CheckStar<cad::CheckSpace>,
 							cad::CheckOr<
 										cad::CheckAnd	<
-														preproc::CheckKeywordInclude,
-														cad::CheckRepeat<CheckSpace, 1, -1>,
+														cad::CheckString<preproc::keyword_include, sizeof(preproc::keyword_include) - 1>,
+														cad::CheckPlus<cad::CheckSpace>,
 														cad::CheckOr<
 																	cad::CheckAnd	<
 																					cad::CheckCharacter<'<'>,
@@ -91,11 +63,11 @@ namespace user
 
 	typedef cad::CheckAnd 	<
 							cad::CheckCharacter<'#'>,
-							cad::CheckRepeat<CheckSpace,0, -1>,
-							preproc::CheckKeywordDefine,
-							cad::CheckRepeat<CheckSpace, 1, -1>,
+							cad::CheckRepeat<cad::CheckSpace,0, -1>,
+							cad::CheckString<preproc::keyword_define, sizeof(preproc::keyword_define) - 1>,
+							cad::CheckRepeat<cad::CheckSpace, 1, -1>,
 							cad::CheckVar<0, cad::CheckRepeat<cad::CheckOr<cad::CheckCharacter<'_'>, cad::CheckAlphaNum>, 1, -1> >,
-							cad::CheckRepeat<CheckSpace, 1, -1>,
+							cad::CheckRepeat<cad::CheckSpace, 1, -1>,
 							cad::CheckVar<1, cad::CheckRepeat<cad::CheckAny, 0, -1> >
 							>
 							checkerPreprocDefine;
