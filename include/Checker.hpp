@@ -124,6 +124,32 @@ namespace cad
 		}
 	};
 
+	template <char c, char ... Next>
+	struct CheckNoneOf {
+		static inline bool	check(const std::string& to_check, size_t& size) noexcept {
+			if (to_check[size] != c) {
+				if (!CheckNoneOf<Next...>::check(to_check, size)) {
+					return (false);
+				}
+				++size;
+				return (true);
+			}
+			return (false);
+		}
+	};
+
+	template <char c>
+	struct CheckNoneOf<c> {
+		static inline bool	check(const std::string& to_check, size_t& size) noexcept {
+			if (to_check[size] != c)
+			{
+				++size;
+				return (true);
+			}
+			return (false);
+		}
+	};
+
 	template <const char (str)[], size_t size_str>
 	struct CheckString
 	{

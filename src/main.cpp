@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <algorithm>
+#include <regex>
 #include "Checker.hpp"
 
 namespace user
@@ -16,6 +18,21 @@ namespace user
 			if (s > 0) {
 				size += s;
 				return (true);
+			}
+			return (false);
+		}
+	};
+
+	struct CheckIdentifier {
+		static bool			check(const std::string& to_check, size_t& size) noexcept {
+			size_t	s = 0;
+			while (std::isalpha(to_check[size + s]) || (s != 0 && std::isdigit(to_check[size + s])) || to_check[size + s] == '_')
+				++s;
+			if (s > 0) {
+				if (to_check.compare(size, s, "return")) {
+					size += s;
+					return (true);
+				}
 			}
 			return (false);
 		}
@@ -37,6 +54,7 @@ namespace user
 	}
 
 	typedef cad::CheckAnd	<
+							cad::CheckStar<cad::CheckSpace>,
 							cad::CheckCharacter<'#'>,
 							cad::CheckStar<cad::CheckSpace>,
 							cad::CheckOr<
@@ -57,13 +75,13 @@ namespace user
 																	>
 														>
 										>
-
 							>
 							checkerPreprocessor;
 
 	typedef cad::CheckAnd 	<
+							cad::CheckStar<cad::CheckSpace>,
 							cad::CheckCharacter<'#'>,
-							cad::CheckRepeat<cad::CheckSpace,0, -1>,
+							cad::CheckStar<cad::CheckSpace>,
 							cad::CheckString<preproc::keyword_define, sizeof(preproc::keyword_define) - 1>,
 							cad::CheckRepeat<cad::CheckSpace, 1, -1>,
 							cad::CheckVar<0, cad::CheckRepeat<cad::CheckOr<cad::CheckCharacter<'_'>, cad::CheckAlphaNum>, 1, -1> >,
@@ -78,6 +96,26 @@ namespace user
 							cad::CheckVar<0, CheckPath>
 							>
 							checkerPathInclude;
+
+	typedef cad::CheckAnd	<
+							cad::CheckCharacter<'/', '/'>,
+							cad::CheckVar<0, cad::CheckStar<cad::CheckAny> >
+							>
+							checkerUnilineComment;
+
+	typedef cad::CheckAnd	<
+							cad::CheckStar<cad::CheckSpace>,
+							CheckIdentifier,
+							cad::CheckPlus<cad::CheckSpace>,
+							CheckIdentifier,
+							cad::CheckStar<cad::CheckSpace>,
+							cad::CheckCharacter<'('>,
+							cad::CheckStar<cad::CheckNoneOf<')'> >,
+							cad::CheckCharacter<')'>,
+							cad::CheckStar<cad::CheckSpace>,
+							cad::CheckCharacter<';'>
+							>
+							checkerDeclareFunction;
 }
 
 static std::vector<std::string>		paths;
@@ -85,6 +123,7 @@ static std::map<std::string, bool>	_file_parsed;
 
 void	parse_file(const std::string& filename) {
 
+	std::string					file;
 	std::vector<std::string>	lines;
 	std::string 				line;
 	std::ifstream				ifs(filename);
@@ -95,7 +134,8 @@ void	parse_file(const std::string& filename) {
 				return ;
 			ifs.open(it + "/" + filename);
 			if (ifs.is_open()) {
-				_file_parsed[it + "/" + filename] = true;
+				file = it + "/" + filename;
+				_file_parsed[file] = true;
 				open = true;
 				break ;
 			}
@@ -108,6 +148,7 @@ void	parse_file(const std::string& filename) {
 		if (_file_parsed.find(filename) != _file_parsed.end())
 			return ;
 		_file_parsed[filename] = true;
+		file = filename;
 	}
 	if (ifs.is_open()) {
 		// std::cout << "open and parse: " << filename << std::endl;
@@ -117,7 +158,11 @@ void	parse_file(const std::string& filename) {
 				// std::cout << "preprocessor include : [" << cad::Var<0>::value << "]" << std::endl;
 				parse_file(cad::Var<0>::value);
 			} else if (user::checkerPreprocDefine::check(line, size)) {
-				std::cout << "preprocessor define [" << cad::Var<0>::value << "] = [" << cad::Var<1>::value << "]" << std::endl;
+			//	std::cout << "file[" << file << "] define [" << cad::Var<0>::value << "] = [" << cad::Var<1>::value << "]" << std::endl;
+			} else if (user::checkerUnilineComment::check(line, size)) {
+				//std::cout << "file[" << file << "] comment : [" << cad::Var<0>::value << "]" << std::endl;
+			} else if (user::checkerDeclareFunction::check(line, size)) {
+				//std::cout << "file[" << file << "] function [" << line << "]" << std::endl;
 			}
 			lines.push_back(line);
 		}
@@ -142,7 +187,7 @@ int	main(int ac, char **av)
 			std::cout << "path to find [" << it << "]" << std::endl;
 		}
 		for (auto it : _file_parsed) {
-			// std::cout << "parsed file [" << it.first << "]" << std::endl;
+			std::cout << "parsed file [" << it.first << "]" << std::endl;
 		}
 	} else {
 		std::cerr << "usage: " << av[0] << "[-Ipath ...] <file ...>" << std::endl;
